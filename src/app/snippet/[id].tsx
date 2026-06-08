@@ -1,7 +1,7 @@
 import { Colors, Radius, Shadows, Spacing, Typography } from "@/constants/theme";
 import { deleteSnippet, getSnippetById, snippetDataType, toggleFavorite } from "@/database/snippetQueries";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,7 +15,9 @@ const SnippetDetail = () => {
       setSnippetDetail(getSnippetById(snippetId));
     }
   };
-
+  useFocusEffect(()=> {
+    loadSnippet();
+  })
   useEffect(() => {
     loadSnippet();
   }, [snippetId]);
@@ -32,6 +34,10 @@ const SnippetDetail = () => {
     router.back();
   };
 
+  const handleEdit = () => {
+    router.push(`/createSnippets?id=${snippetId}`);
+  };
+
   const btnText = snippetDetail?.isFavorite === 1 ? "Remove from favorites" : "Add to Favorites";
 
   return (
@@ -41,9 +47,15 @@ const SnippetDetail = () => {
           <Ionicons name="chevron-back" size={28} color={Colors.dark.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Snippet</Text>
-        <Pressable onPress={handleDelete}>
+        <View style={{ flexDirection: "row", gap: Spacing.lg }}>
+          <Pressable onPress={handleDelete}>
           <Ionicons name="trash-outline" size={24} color={Colors.dark.danger} />
         </Pressable>
+        <Pressable onPress={handleEdit}>
+          <Ionicons name="pencil" size={24} color={Colors.dark.success} />
+        </Pressable>
+        </View>
+        
       </View>
 
       <ScrollView

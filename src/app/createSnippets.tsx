@@ -1,8 +1,8 @@
 import { Colors, Radius, Spacing, Typography } from "@/constants/theme";
-import { insertSnippet, snippetDataType } from "@/database/snippetQueries";
+import { getSnippetById, insertSnippet, snippetDataType, updateSnippet } from "@/database/snippetQueries";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React, { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Pressable,
@@ -24,12 +24,23 @@ const CreateSnippetsScreen = () => {
     aiSummary: "",
   });
 
+  const { id } = useLocalSearchParams();
+  useEffect(() => {
+    if (id) {
+    const snippet = getSnippetById(Number(id));
+    if (snippet) {
+      setSnippetData(snippet);
+    }
+  }
+  }, [id]);
+
   const handleSaveSnippet = () => {
     if (!snippetData.title.trim() || !snippetData.code.trim()) {
       alert("Title and Code are required");
       return;
     }
-    insertSnippet(
+    if (!id) { 
+      insertSnippet(
       snippetData.title,
       snippetData.description || "",
       snippetData.code,
@@ -37,7 +48,22 @@ const CreateSnippetsScreen = () => {
       snippetData.tags || "",
       snippetData.isFavorite || 0,
       snippetData.aiSummary || ""
-    );
+    )
+  }
+  else {
+    updateSnippet(
+      Number(id),
+      snippetData.title,
+      snippetData.description || "",
+      snippetData.code,
+      snippetData.language || "",
+      snippetData.tags || "",
+      snippetData.isFavorite || 0,
+      snippetData.aiSummary || ""
+    )
+  }
+  
+   
     setSnippetData({
       title: "",
       description: "",
@@ -56,7 +82,7 @@ const CreateSnippetsScreen = () => {
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={28} color={Colors.dark.text} />
         </Pressable>
-        <Text style={styles.title}>New Snippet</Text>
+        <Text style={styles.title}>{id ? "Edit snippet" : "New Snippet"}</Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -65,7 +91,7 @@ const CreateSnippetsScreen = () => {
           <Text style={styles.label}>Title *</Text>
           <TextInput
             style={styles.input}
-            placeholder="Snippet title"
+            placeholder={id? snippetData.title : "Snippet title"}
             placeholderTextColor={Colors.dark.textTertiary}
             value={snippetData.title}
             onChangeText={(text) =>
