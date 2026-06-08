@@ -58,6 +58,7 @@ export default function HomeScreen() {
       ) : (
         <ListSnippets data={snippetList} />
       )}
+
     </SafeAreaView>
   );
 }

@@ -5,6 +5,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import EnhanceWithAI from "../services/ai_service";
 
 const SnippetDetail = () => {
   const snippetId = Number(useLocalSearchParams().id);
@@ -114,6 +115,13 @@ const SnippetDetail = () => {
           </View>
         )}
       </ScrollView>
+       <Pressable
+      onPress={() => {
+        EnhanceWithAI()
+        // console.log("Enhance with AI clicked");
+      }}>
+        <Text style={styles.aiBtn}>Enhance with AI</Text>
+      </Pressable>
 
       <View style={styles.footer}>
         <Pressable style={styles.favoriteButton} onPress={handleToggleFavorite}>
@@ -254,5 +262,15 @@ const styles = StyleSheet.create({
     ...Typography.button,
     color: Colors.dark.background,
   },
+  aiBtn:{
+    position: "absolute",
+    bottom: 100,
+    right: 20,
+    backgroundColor: Colors.dark.backgroundSelected,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.full,
+    ...Shadows.lg,
+  }
 });
 
