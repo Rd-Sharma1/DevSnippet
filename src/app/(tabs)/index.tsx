@@ -1,7 +1,11 @@
 // import { insertDemoSnippets } from "@/database/snippetQueries";
 import ListSnippets from "@/components/ListSnippets";
 import { Colors, Radius, Spacing, Typography } from "@/constants/theme";
-import { getAllSnippets, searchSnippets, snippetDataType } from "@/database/snippetQueries";
+import {
+  getAllSnippets,
+  searchSnippets,
+  snippetDataType,
+} from "@/database/snippetQueries";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -22,7 +26,7 @@ export default function HomeScreen() {
     useCallback(() => {
       const list = getAllSnippets();
       setSnippetList(list);
-    }, [])
+    }, []),
   );
 
   return (
@@ -58,7 +62,6 @@ export default function HomeScreen() {
       ) : (
         <ListSnippets data={snippetList} />
       )}
-
     </SafeAreaView>
   );
 }
@@ -110,4 +113,3 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
 });
-

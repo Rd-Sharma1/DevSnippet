@@ -1,24 +1,38 @@
-import { Colors, Radius, Shadows, Spacing, Typography } from "@/constants/theme";
-import { deleteSnippet, getSnippetById, snippetDataType, toggleFavorite } from "@/database/snippetQueries";
+import {
+  Colors,
+  Radius,
+  Shadows,
+  Spacing,
+  Typography,
+} from "@/constants/theme";
+import {
+  deleteSnippet,
+  getSnippetById,
+  snippetDataType,
+  toggleFavorite,
+} from "@/database/snippetQueries";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import EnhanceWithAI from "../services/ai_service";
+import EnhanceWithAI, { AiResponseType } from "../services/ai_service";
 
 const SnippetDetail = () => {
   const snippetId = Number(useLocalSearchParams().id);
-  const [snippetDetail, setSnippetDetail] = useState<snippetDataType | null>(null);
+  const [snippetDetail, setSnippetDetail] = useState<snippetDataType | null>(
+    null,
+  );
+  const [aiData, setAiData] = useState<AiResponseType>();
 
   const loadSnippet = () => {
     if (!Number.isNaN(snippetId)) {
       setSnippetDetail(getSnippetById(snippetId));
     }
   };
-  useFocusEffect(()=> {
+  useFocusEffect(() => {
     loadSnippet();
-  })
+  });
   useEffect(() => {
     loadSnippet();
   }, [snippetId]);
@@ -39,7 +53,14 @@ const SnippetDetail = () => {
     router.push(`/createSnippets?id=${snippetId}`);
   };
 
-  const btnText = snippetDetail?.isFavorite === 1 ? "Remove from favorites" : "Add to Favorites";
+  const handleAiRespnse = async () => {
+    snippetDetail && setAiData(await EnhanceWithAI(snippetDetail));
+  };
+
+  const btnText =
+    snippetDetail?.isFavorite === 1
+      ? "Remove from favorites"
+      : "Add to Favorites";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -50,13 +71,16 @@ const SnippetDetail = () => {
         <Text style={styles.headerTitle}>Snippet</Text>
         <View style={{ flexDirection: "row", gap: Spacing.lg }}>
           <Pressable onPress={handleDelete}>
-          <Ionicons name="trash-outline" size={24} color={Colors.dark.danger} />
-        </Pressable>
-        <Pressable onPress={handleEdit}>
-          <Ionicons name="pencil" size={24} color={Colors.dark.success} />
-        </Pressable>
+            <Ionicons
+              name="trash-outline"
+              size={24}
+              color={Colors.dark.danger}
+            />
+          </Pressable>
+          <Pressable onPress={handleEdit}>
+            <Ionicons name="pencil" size={24} color={Colors.dark.success} />
+          </Pressable>
         </View>
-        
       </View>
 
       <ScrollView
@@ -115,20 +139,38 @@ const SnippetDetail = () => {
           </View>
         )}
       </ScrollView>
-       <Pressable
-      onPress={() => {
-        EnhanceWithAI()
-        // console.log("Enhance with AI clicked");
-      }}>
-        <Text style={styles.aiBtn}>Enhance with AI</Text>
-      </Pressable>
+      {aiData ? (
+        <ScrollView>
+          <View>
+            <Text>Ai Summary</Text>
+            <Text>{aiData.summary}</Text>
+          </View>
+          <View>
+            <Text>Suggested Improvements</Text>
+            <Text>{aiData.improvements}</Text>
+          </View>
+        </ScrollView>
+      ) : (
+        <Pressable
+          onPress={() => {
+            console.log("Enhance with AI clicked");
+            handleAiRespnse();
+          }}
+        >
+          <Text style={styles.aiBtn}>Enhance with AI</Text>
+        </Pressable>
+      )}
 
       <View style={styles.footer}>
         <Pressable style={styles.favoriteButton} onPress={handleToggleFavorite}>
           <Ionicons
             name={snippetDetail?.isFavorite === 1 ? "heart" : "heart-outline"}
             size={20}
-            color={snippetDetail?.isFavorite === 1 ? Colors.dark.warning : Colors.dark.background}
+            color={
+              snippetDetail?.isFavorite === 1
+                ? Colors.dark.warning
+                : Colors.dark.background
+            }
           />
           <Text style={styles.favoriteButtonText}>{btnText}</Text>
         </Pressable>
@@ -262,7 +304,7 @@ const styles = StyleSheet.create({
     ...Typography.button,
     color: Colors.dark.background,
   },
-  aiBtn:{
+  aiBtn: {
     position: "absolute",
     bottom: 100,
     right: 20,
@@ -271,6 +313,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.full,
     ...Shadows.lg,
-  }
+  },
 });
-
