@@ -1,20 +1,19 @@
-import db from './db';
+import db from "./db";
 
 export type snippetDataType = {
-    id?: number;
-    title: string;
-    description?: string;
-    code: string;
-    language?: string;
-    tags?: string;
-    isFavorite?: number;
-    aiSummary?: string;
-  };
+  id?: number;
+  title: string;
+  description?: string;
+  code: string;
+  language?: string;
+  tags?: string;
+  isFavorite?: number;
+  aiSummary?: string;
+};
 
-export const initializeDatabase =
-  () => {
-    try {
-      db.execSync(`
+export const initializeDatabase = () => {
+  try {
+    db.execSync(`
         CREATE TABLE IF NOT EXISTS snippets (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
 
@@ -38,16 +37,11 @@ export const initializeDatabase =
         );
       `);
 
-      console.log(
-        "Database initialized"
-      );
-    } catch (error) {
-      console.log(
-        "DB Init Error:",
-        error
-      );
-    }
-  };
+    console.log("Database initialized");
+  } catch (error) {
+    console.log("DB Init Error:", error);
+  }
+};
 
 //   export const insertDemoSnippets = () => {
 //     try {
@@ -70,92 +64,134 @@ export const initializeDatabase =
 //     }
 //   }
 export const getAllSnippets = () => {
-    try {
-        const result = db.getAllSync('SELECT * FROM snippets');
-        return result as snippetDataType[];
-    } catch (error) {
-        console.log('Get All Snippets Error:', error);
-        return [];
-    }
-}
+  try {
+    const result = db.getAllSync("SELECT * FROM snippets");
+    return result as snippetDataType[];
+  } catch (error) {
+    console.log("Get All Snippets Error:", error);
+    return [];
+  }
+};
 
 export const getSnippetById = (id: number) => {
-    try {
-        const result = db.getFirstSync('SELECT * FROM snippets WHERE id = ?', [id]);
-        return result as snippetDataType | null;
-    } catch (error) {
-        console.log('Get Snippet By ID Error:', error);
-        return null;
-    }
-}
+  try {
+    const result = db.getFirstSync("SELECT * FROM snippets WHERE id = ?", [id]);
+    return result as snippetDataType | null;
+  } catch (error) {
+    console.log("Get Snippet By ID Error:", error);
+    return null;
+  }
+};
 
-export const insertSnippet = (title: string, description: string, code: string, language: string, tags: string, isFavorite: number, aiSummary: string) => {
-    try {
-        const createdAt = new Date().toISOString();
-        const updatedAt = createdAt;
-        db.runSync('INSERT INTO snippets (title, description, code, language, tags, isFavorite, aiSummary, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [title, description, code, language, tags, isFavorite, aiSummary, createdAt, updatedAt]);
-        console.log('Snippet inserted successfully');
-    } catch (error) {
-        console.log('Insert Snippet Error:', error);
-    }
-    return "success";
-}
+export const insertSnippet = (
+  title: string,
+  description: string,
+  code: string,
+  language: string,
+  tags: string,
+  isFavorite: number,
+  aiSummary: string,
+) => {
+  try {
+    const createdAt = new Date().toISOString();
+    const updatedAt = createdAt;
+    db.runSync(
+      "INSERT INTO snippets (title, description, code, language, tags, isFavorite, aiSummary, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        title,
+        description,
+        code,
+        language,
+        tags,
+        isFavorite,
+        aiSummary,
+        createdAt,
+        updatedAt,
+      ],
+    );
+    console.log("Snippet inserted successfully");
+  } catch (error) {
+    console.log("Insert Snippet Error:", error);
+  }
+  return "success";
+};
 
-export const updateSnippet = (id: number, title: string, description: string, code: string, language: string, tags: string, isFavorite: number, aiSummary: string) => {
-    try {
-        const updatedAt = new Date().toISOString();
-        db.runSync('UPDATE snippets SET title = ?, description = ?, code = ?, language = ?, tags = ?, isFavorite = ?, aiSummary = ?, updatedAt = ? WHERE id = ?', [title, description, code, language, tags, isFavorite, aiSummary, updatedAt, id]);
-        console.log('Snippet updated successfully');
-    } catch (error) {
-        console.log('Update Snippet Error:', error);
-    }
-    return "success";
-}
+export const updateSnippet = (
+  id: number,
+  title: string,
+  description: string,
+  code: string,
+  language: string,
+  tags: string,
+  isFavorite: number,
+  aiSummary: string,
+) => {
+  try {
+    const updatedAt = new Date().toISOString();
+    db.runSync(
+      "UPDATE snippets SET title = ?, description = ?, code = ?, language = ?, tags = ?, isFavorite = ?, aiSummary = ?, updatedAt = ? WHERE id = ?",
+      [
+        title,
+        description,
+        code,
+        language,
+        tags,
+        isFavorite,
+        aiSummary,
+        updatedAt,
+        id,
+      ],
+    );
+    console.log("Snippet updated successfully");
+  } catch (error) {
+    console.log("Update Snippet Error:", error);
+  }
+  return "success";
+};
+
+export const updateSnippetAISummary = (id: number, aiSummary: string) => {
+  try {
+    const updatedAt = new Date().toISOString();
+    db.runSync(
+      "UPDATE snippets SET aiSummary = ?, updatedAt = ? WHERE id = ?",
+      [aiSummary, updatedAt, id],
+    );
+    console.log("AI Summary updated successfully");
+  } catch (error) {
+    console.log("Update AI Summary Error:", error);
+  }
+};
 
 export const deleteSnippet = (id: number) => {
-    try {
-        db.runSync('DELETE FROM snippets WHERE id = ?', [id]);
-        console.log('Snippet deleted successfully');
-    } catch (error) {
-        console.log('Delete Snippet Error:', error);
-    }
-}
+  try {
+    db.runSync("DELETE FROM snippets WHERE id = ?", [id]);
+    console.log("Snippet deleted successfully");
+  } catch (error) {
+    console.log("Delete Snippet Error:", error);
+  }
+};
 
-export const toggleFavorite =
-  (
-    id: number,
-    Value: number
-  ) => {
-    try {
-      db.runSync(
-        `
+export const toggleFavorite = (id: number, Value: number) => {
+  try {
+    db.runSync(
+      `
         UPDATE snippets
         SET isFavorite = ?
         WHERE id = ?
         `,
-        [
-          Value,
-          id,
-        ]
-      );
+      [Value, id],
+    );
 
-      console.log(
-        "Favorite updated"
-      );
-    } catch (error) {
-      console.log(
-        "Favorite Toggle Error:",
-        error
-      );
-    }
-  };
+    console.log("Favorite updated");
+  } catch (error) {
+    console.log("Favorite Toggle Error:", error);
+  }
+};
 
-  export const searchSnippets =
-  (query: string) => {
-    try {
-      const result =
-        db.getAllSync(
-          `
+export const searchSnippets = (query: string) => {
+  try {
+    const result = db.getAllSync(
+      `
           SELECT *
           FROM snippets
           WHERE
@@ -163,20 +199,13 @@ export const toggleFavorite =
             OR language LIKE ?
             OR tags LIKE ?
           `,
-          [
-            `%${query}%`,
-            `%${query}%`,
-            `%${query}%`,
-          ]
-        );
+      [`%${query}%`, `%${query}%`, `%${query}%`],
+    );
 
-      return result as snippetDataType[];
-    } catch (error) {
-      console.log(
-        "Search Error:",
-        error
-      );
+    return result as snippetDataType[];
+  } catch (error) {
+    console.log("Search Error:", error);
 
-      return [];
-    }
-  };
+    return [];
+  }
+};

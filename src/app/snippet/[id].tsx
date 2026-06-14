@@ -10,20 +10,31 @@ import {
   getSnippetById,
   snippetDataType,
   toggleFavorite,
+  updateSnippetAISummary,
 } from "@/database/snippetQueries";
+import { useApiKey } from "@/hooks/use-api-key";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import EnhanceWithAI, { AiResponseType } from "../services/ai_service";
 
 const SnippetDetail = () => {
   const snippetId = Number(useLocalSearchParams().id);
+  const { apiKey } = useApiKey();
   const [snippetDetail, setSnippetDetail] = useState<snippetDataType | null>(
     null,
   );
-  const [aiData, setAiData] = useState<AiResponseType>();
+  const [aiData, setAiData] = useState<AiResponseType | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const loadSnippet = () => {
     if (!Number.isNaN(snippetId)) {
@@ -54,7 +65,35 @@ const SnippetDetail = () => {
   };
 
   const handleAiRespnse = async () => {
-    snippetDetail && setAiData(await EnhanceWithAI(snippetDetail));
+    if (!snippetDetail) {
+      return;
+    }
+
+    setIsLoading(true);
+    console.log(
+      "Button clicked, using API key:",
+      apiKey ? "provided" : "default",
+    );
+
+    const aiResponse = await EnhanceWithAI(snippetDetail, apiKey || undefined);
+
+    if (aiResponse) {
+      setAiData(aiResponse);
+      // Persist AI summary to database
+      if (snippetDetail.id) {
+        const summaryJson = JSON.stringify({
+          summary: aiResponse.summary,
+          tags: aiResponse.tags,
+          improvements: aiResponse.improvements,
+          description: aiResponse.description,
+        });
+        updateSnippetAISummary(snippetDetail.id, summaryJson);
+        loadSnippet();
+      }
+    } else {
+      console.log("AI response was undefined or invalid");
+    }
+    setIsLoading(false);
   };
 
   const btnText =
@@ -140,24 +179,53 @@ const SnippetDetail = () => {
         )}
       </ScrollView>
       {aiData ? (
-        <ScrollView>
-          <View>
-            <Text>Ai Summary</Text>
-            <Text>{aiData.summary}</Text>
+        <ScrollView style={styles.aiContainer}>
+          <View style={styles.aiCard}>
+            <Text style={styles.aiTitle}>AI Summary</Text>
+            <Text style={styles.aiSummaryText}>{aiData.summary}</Text>
           </View>
-          <View>
-            <Text>Suggested Improvements</Text>
-            <Text>{aiData.improvements}</Text>
-          </View>
+
+          {aiData.tags && aiData.tags.length > 0 && (
+            <View style={styles.aiCard}>
+              <Text style={styles.aiTitle}>Tags</Text>
+              <View style={styles.tagsContainer}>
+                {aiData.tags.map((tag, i) => (
+                  <View key={i} style={styles.aiTag}>
+                    <Text style={styles.aiTagText}>{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {aiData.improvements && aiData.improvements.length > 0 && (
+            <View style={styles.aiCard}>
+              <Text style={styles.aiTitle}>Suggested Improvements</Text>
+              <View style={styles.improvementsList}>
+                {aiData.improvements.map((improvement, i) => (
+                  <View key={i} style={styles.improvementItem}>
+                    <Text style={styles.improvementBullet}>•</Text>
+                    <Text style={styles.improvementText}>{improvement}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
         </ScrollView>
       ) : (
         <Pressable
+          style={styles.aiBtn}
           onPress={() => {
             console.log("Enhance with AI clicked");
             handleAiRespnse();
           }}
+          disabled={isLoading}
         >
-          <Text style={styles.aiBtn}>Enhance with AI</Text>
+          {isLoading ? (
+            <ActivityIndicator color={Colors.dark.background} size="small" />
+          ) : (
+            <Text style={styles.aiBtnText}>Enhance with AI</Text>
+          )}
         </Pressable>
       )}
 
@@ -313,5 +381,63 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.full,
     ...Shadows.lg,
+  },
+  aiBtnText: {
+    ...Typography.button,
+    color: Colors.dark.background,
+  },
+  aiContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  aiCard: {
+    backgroundColor: Colors.dark.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.dark.accent,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    ...Shadows.sm,
+  },
+  aiTitle: {
+    ...Typography.h4,
+    color: Colors.dark.accent,
+    marginBottom: Spacing.md,
+  },
+  aiSummaryText: {
+    ...Typography.body,
+    color: Colors.dark.textSecondary,
+    lineHeight: 24,
+  },
+  aiTag: {
+    backgroundColor: Colors.dark.accent,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.full,
+    marginRight: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  aiTagText: {
+    ...Typography.label,
+    color: Colors.dark.background,
+  },
+  improvementsList: {
+    gap: Spacing.md,
+  },
+  improvementItem: {
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
+  improvementBullet: {
+    ...Typography.body,
+    color: Colors.dark.accent,
+    fontWeight: "bold",
+  },
+  improvementText: {
+    ...Typography.body,
+    color: Colors.dark.textSecondary,
+    flex: 1,
+    lineHeight: 21,
   },
 });

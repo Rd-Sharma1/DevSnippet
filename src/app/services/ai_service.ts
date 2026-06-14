@@ -7,20 +7,25 @@ export type AiResponseType = {
   description?: string;
 };
 
-const EnhanceWithAI = async ({
-  language,
-  title,
-  code,
-  description,
-}: snippetDataType) => {
+const EnhanceWithAI = async (
+  { language, title, code, description }: snippetDataType,
+  apiKey?: string,
+) => {
   try {
-    console.log("fetching gemini response");
+    const key = apiKey || process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
+
+    if (!key) {
+      console.log("No API key available");
+      return undefined;
+    }
+
+    // console.log("fetching gemini response");
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
       {
         method: "POST",
         headers: {
-          "x-goog-api-key": `${process.env.EXPO_PUBLIC_GEMINI_API_KEY}`,
+          "x-goog-api-key": key,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -55,10 +60,10 @@ ${description && "description: short description for the snippet"}
                     Return this shape:
                     
                     {
-                    "summary": "",
-                    "tags": [],
-                    "improvements": []
-                    "description"? : "",
+                      "summary": "",
+                      "tags": [],
+                      "improvements": [],
+                      "description": ""
                     }`,
                 },
               ],
@@ -75,20 +80,26 @@ ${description && "description: short description for the snippet"}
     );
 
     const data = await response.json();
-    console.log("data recieved", data);
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    console.log("rawText Done", rawText);
     const cleanedResponse = rawText?.replace(/```json|```/g, "").trim();
-    console.log("clean done", cleanedResponse);
     const parsed = JSON.parse(cleanedResponse);
-    console.log("STATUS:", response.status);
-    console.log(JSON.stringify(parsed, null, 2));
-    console.log(parsed);
 
-    const AiResponse: AiResponseType = parsed;
+    const AiResponse: AiResponseType = {
+      summary: typeof parsed.summary === "string" ? parsed.summary : "",
+      tags: Array.isArray(parsed.tags) ? parsed.tags : [],
+      improvements: Array.isArray(parsed.improvements)
+        ? parsed.improvements
+        : [],
+      description:
+        typeof parsed.description === "string" && parsed.description.length > 0
+          ? parsed.description
+          : undefined,
+    };
+
     return AiResponse;
   } catch (error) {
     console.log("FETCH ERROR:", error);
+    return undefined;
   }
 };
 
