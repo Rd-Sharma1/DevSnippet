@@ -1,27 +1,27 @@
 import {
-    Colors,
-    Radius,
-    Shadows,
-    Spacing,
-    Typography
+  Colors,
+  Radius,
+  Shadows,
+  Spacing,
+  Typography,
 } from "@/constants/theme";
 import { useApiKey } from "@/hooks/use-api-key";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const SettingsTab = () => {
-  const { apiKey, saveApiKey, clearApiKey } = useApiKey();
+  const { apiKey, isLoading, saveApiKey, clearApiKey } = useApiKey();
   const [inputKey, setInputKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [isTestingKey, setIsTestingKey] = useState(false);
@@ -34,7 +34,7 @@ const SettingsTab = () => {
     const keyToTest = inputKey || apiKey;
 
     if (!keyToTest) {
-      Alert.alert("Error", "Please enter an API key first");
+      Alert.alert("Error", "Please enter an API key first.");
       return;
     }
 
@@ -71,10 +71,9 @@ const SettingsTab = () => {
         setTestStatus("error");
         Alert.alert("Error", "API key is invalid. Please check and try again.");
       }
-    } catch (error) {
+    } catch (_) {
       setTestStatus("error");
       Alert.alert("Error", "Failed to test API key. Check your connection.");
-      console.log("Test key error:", error);
     } finally {
       setIsTestingKey(false);
     }
@@ -82,7 +81,7 @@ const SettingsTab = () => {
 
   const handleSaveKey = async () => {
     if (!inputKey.trim()) {
-      Alert.alert("Error", "Please enter an API key");
+      Alert.alert("Error", "Please enter an API key.");
       return;
     }
 
@@ -91,10 +90,10 @@ const SettingsTab = () => {
 
     if (success) {
       setInputKey("");
-      Alert.alert("Success", "API key saved securely!");
+      Alert.alert("Success", "API key saved securely.");
       setTestStatus("idle");
     } else {
-      Alert.alert("Error", "Failed to save API key");
+      Alert.alert("Error", "Failed to save API key. Please try again.");
     }
     setIsSaving(false);
   };
@@ -102,16 +101,16 @@ const SettingsTab = () => {
   const handleClearKey = () => {
     Alert.alert(
       "Clear API Key",
-      "Are you sure you want to clear your stored API key? The app will fall back to the default key.",
+      "Remove the stored Gemini API key from this device? The app will no longer be able to generate AI suggestions until a new key is configured.",
       [
-        { text: "Cancel", onPress: () => {} },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Clear",
           onPress: async () => {
             await clearApiKey();
             setInputKey("");
             setTestStatus("idle");
-            Alert.alert("Success", "API key cleared");
+            Alert.alert("Success", "API key cleared.");
           },
           style: "destructive",
         },
@@ -119,8 +118,18 @@ const SettingsTab = () => {
     );
   };
 
-  const hasStoredKey =
-    !!apiKey && apiKey !== process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+  const hasStoredKey = !!apiKey;
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loaderPane}>
+          <ActivityIndicator size="large" color={Colors.dark.accent} />
+          <Text style={styles.loaderText}>Loading secure settings…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -132,14 +141,12 @@ const SettingsTab = () => {
           <Text style={styles.title}>Settings</Text>
         </View>
 
-        {/* API Key Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="key" size={24} color={Colors.dark.accent} />
             <Text style={styles.sectionTitle}>API Configuration</Text>
           </View>
 
-          {/* Status Indicator */}
           <View style={styles.statusCard}>
             <View style={styles.statusRow}>
               <View style={styles.statusIndicator}>
@@ -156,29 +163,29 @@ const SettingsTab = () => {
               </View>
               <View style={styles.statusTextContainer}>
                 <Text style={styles.statusLabel}>
-                  {hasStoredKey ? "Custom Key Active" : "Using Default Key"}
+                  {hasStoredKey
+                    ? "API key configured"
+                    : "No API key configured"}
                 </Text>
                 <Text style={styles.statusSubtext}>
                   {hasStoredKey
-                    ? "Your API key is securely stored"
-                    : "Set a custom key for personalized usage"}
+                    ? "Secure key storage is active."
+                    : "Add your Gemini key to use AI features."}
                 </Text>
               </View>
             </View>
           </View>
 
-          {/* Input Section */}
           <View style={styles.inputSection}>
             <Text style={styles.label}>Gemini API Key</Text>
             <Text style={styles.hint}>
-              Get your free API key from{" "}
-              <Text style={styles.link}>ai.google.dev</Text>
+              Get your key from <Text style={styles.link}>ai.google.dev</Text>
             </Text>
 
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}
-                placeholder="sk-..."
+                placeholder="Paste your Gemini key"
                 placeholderTextColor={Colors.dark.textTertiary}
                 secureTextEntry={!showKey}
                 value={inputKey}
@@ -198,7 +205,6 @@ const SettingsTab = () => {
             </View>
           </View>
 
-          {/* Action Buttons */}
           <View style={styles.buttonGroup}>
             <Pressable
               style={[styles.button, styles.testButton]}
@@ -279,7 +285,6 @@ const SettingsTab = () => {
           )}
         </View>
 
-        {/* About Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
           <View style={styles.infoCard}>
@@ -296,21 +301,19 @@ const SettingsTab = () => {
           </View>
         </View>
 
-        {/* Help Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>BYOK (Bring Your Own Key)</Text>
           <View style={styles.helpCard}>
             <Text style={styles.helpText}>
-              DevSnippet supports BYOK architecture, allowing you to use your
-              own Gemini API key. Your key is encrypted and stored locally on
-              your device for maximum security and privacy.
+              DevSnippet uses a strict BYOK architecture. Your Gemini key is
+              stored only on your device and never falls back to a built-in key.
             </Text>
-            <Text style={styles.helpTitle}>Getting Started:</Text>
+            <Text style={styles.helpTitle}>Getting Started</Text>
             <Text style={styles.helpText}>
               1. Visit ai.google.dev{"\n"}
-              2. Create a new API key{"\n"}
+              2. Create a Gemini API key{"\n"}
               3. Paste it above and save{"\n"}
-              4. Test the key to verify
+              4. Test the key before using AI features
             </Text>
           </View>
         </View>
@@ -325,6 +328,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.dark.background,
+  },
+  loaderPane: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.xxl,
+  },
+  loaderText: {
+    ...Typography.body,
+    color: Colors.dark.textSecondary,
+    marginTop: Spacing.lg,
+    textAlign: "center",
   },
   content: {
     paddingHorizontal: Spacing.lg,

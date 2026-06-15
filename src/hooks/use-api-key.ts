@@ -7,7 +7,6 @@ export const useApiKey = () => {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load API key on mount
   useEffect(() => {
     loadApiKey();
   }, []);
@@ -15,15 +14,9 @@ export const useApiKey = () => {
   const loadApiKey = async () => {
     try {
       const stored = await SecureStore.getItemAsync(API_KEY_STORAGE);
-      if (stored) {
-        setApiKey(stored);
-      } else {
-        // Fallback to environment variable if no stored key
-        setApiKey(process.env.EXPO_PUBLIC_GEMINI_API_KEY || null);
-      }
-    } catch (error) {
-      console.log("Error loading API key:", error);
-      setApiKey(process.env.EXPO_PUBLIC_GEMINI_API_KEY || null);
+      setApiKey(stored || null);
+    } catch (_) {
+      setApiKey(null);
     } finally {
       setIsLoading(false);
     }
@@ -34,8 +27,7 @@ export const useApiKey = () => {
       await SecureStore.setItemAsync(API_KEY_STORAGE, key);
       setApiKey(key);
       return true;
-    } catch (error) {
-      console.log("Error saving API key:", error);
+    } catch (_) {
       return false;
     }
   };
@@ -43,10 +35,9 @@ export const useApiKey = () => {
   const clearApiKey = async () => {
     try {
       await SecureStore.deleteItemAsync(API_KEY_STORAGE);
-      setApiKey(process.env.EXPO_PUBLIC_GEMINI_API_KEY || null);
+      setApiKey(null);
       return true;
-    } catch (error) {
-      console.log("Error clearing API key:", error);
+    } catch (_) {
       return false;
     }
   };

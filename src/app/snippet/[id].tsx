@@ -29,17 +29,20 @@ import EnhanceWithAI, { AiResponseType } from "../services/ai_service";
 
 const SnippetDetail = () => {
   const snippetId = Number(useLocalSearchParams().id);
-  const { apiKey } = useApiKey();
+  const { apiKey, isLoading: isKeyLoading } = useApiKey();
   const [snippetDetail, setSnippetDetail] = useState<snippetDataType | null>(
     null,
   );
+  const [hasLoadedSnippet, setHasLoadedSnippet] = useState(false);
   const [aiData, setAiData] = useState<AiResponseType | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const loadSnippet = () => {
     if (!Number.isNaN(snippetId)) {
       setSnippetDetail(getSnippetById(snippetId));
     }
+    setHasLoadedSnippet(true);
   };
   useFocusEffect(() => {
     loadSnippet();
@@ -64,35 +67,36 @@ const SnippetDetail = () => {
     router.push(`/createSnippets?id=${snippetId}`);
   };
 
-  const handleAiRespnse = async () => {
+  const handleAiResponse = async () => {
     if (!snippetDetail) {
       return;
     }
 
     setIsLoading(true);
-    console.log(
-      "Button clicked, using API key:",
-      apiKey ? "provided" : "default",
-    );
+    setAiError(null);
 
-    const aiResponse = await EnhanceWithAI(snippetDetail, apiKey || undefined);
+    if (!apiKey) {
+      setAiError(
+        "No Gemini API key configured. Please add your key in Settings to use AI features.",
+      );
+      setIsLoading(false);
+      return;
+    }
+
+    const aiResponse = await EnhanceWithAI(snippetDetail, apiKey);
 
     if (aiResponse) {
       setAiData(aiResponse);
-      // Persist AI summary to database
       if (snippetDetail.id) {
-        const summaryJson = JSON.stringify({
-          summary: aiResponse.summary,
-          tags: aiResponse.tags,
-          improvements: aiResponse.improvements,
-          description: aiResponse.description,
-        });
-        updateSnippetAISummary(snippetDetail.id, summaryJson);
+        updateSnippetAISummary(snippetDetail.id, aiResponse.summary);
         loadSnippet();
       }
     } else {
-      console.log("AI response was undefined or invalid");
+      setAiError(
+        "AI request failed. Validate your API key and network connection, then retry.",
+      );
     }
+
     setIsLoading(false);
   };
 
@@ -100,6 +104,33 @@ const SnippetDetail = () => {
     snippetDetail?.isFavorite === 1
       ? "Remove from favorites"
       : "Add to Favorites";
+
+  if (isKeyLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loaderPane}>
+          <ActivityIndicator size="large" color={Colors.dark.accent} />
+          <Text style={styles.loaderText}>Loading secure settings…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (hasLoadedSnippet && !snippetDetail) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centeredPane}>
+          <Text style={styles.emptyTitle}>Snippet not found</Text>
+          <Text style={styles.emptyText}>
+            This snippet may have been removed or the link is invalid.
+          </Text>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backButtonText}>Go back</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -185,7 +216,7 @@ const SnippetDetail = () => {
             <Text style={styles.aiSummaryText}>{aiData.summary}</Text>
           </View>
 
-          {aiData.tags && aiData.tags.length > 0 && (
+          {aiData.tags.length > 0 && (
             <View style={styles.aiCard}>
               <Text style={styles.aiTitle}>Tags</Text>
               <View style={styles.tagsContainer}>
@@ -198,7 +229,7 @@ const SnippetDetail = () => {
             </View>
           )}
 
-          {aiData.improvements && aiData.improvements.length > 0 && (
+          {aiData.improvements.length > 0 && (
             <View style={styles.aiCard}>
               <Text style={styles.aiTitle}>Suggested Improvements</Text>
               <View style={styles.improvementsList}>
@@ -213,20 +244,34 @@ const SnippetDetail = () => {
           )}
         </ScrollView>
       ) : (
-        <Pressable
-          style={styles.aiBtn}
-          onPress={() => {
-            console.log("Enhance with AI clicked");
-            handleAiRespnse();
-          }}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color={Colors.dark.background} size="small" />
-          ) : (
-            <Text style={styles.aiBtnText}>Enhance with AI</Text>
+        <View style={styles.aiActionPane}>
+          <Pressable
+            style={[
+              styles.aiBtn,
+              (!apiKey || isLoading) && styles.aiBtnDisabled,
+            ]}
+            onPress={handleAiResponse}
+            disabled={!apiKey || isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color={Colors.dark.background} size="small" />
+            ) : (
+              <Text style={styles.aiBtnText}>Enhance with AI</Text>
+            )}
+          </Pressable>
+
+          {!apiKey && (
+            <Text style={styles.hintText}>
+              Add your Gemini API key in Settings before generating AI insights.
+            </Text>
           )}
-        </Pressable>
+
+          {aiError && (
+            <View style={styles.errorCard}>
+              <Text style={styles.errorText}>{aiError}</Text>
+            </View>
+          )}
+        </View>
       )}
 
       <View style={styles.footer}>
@@ -253,6 +298,45 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.dark.background,
+  },
+  loaderPane: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.xxl,
+  },
+  loaderText: {
+    ...Typography.body,
+    color: Colors.dark.textSecondary,
+    marginTop: Spacing.lg,
+  },
+  centeredPane: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.xl,
+  },
+  emptyTitle: {
+    ...Typography.h3,
+    color: Colors.dark.text,
+    marginBottom: Spacing.sm,
+  },
+  emptyText: {
+    ...Typography.body,
+    color: Colors.dark.textSecondary,
+    textAlign: "center",
+    marginBottom: Spacing.xl,
+    lineHeight: 22,
+  },
+  backButton: {
+    backgroundColor: Colors.dark.accent,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.md,
+  },
+  backButtonText: {
+    ...Typography.button,
+    color: Colors.dark.background,
   },
   header: {
     flexDirection: "row",
@@ -373,18 +457,41 @@ const styles = StyleSheet.create({
     color: Colors.dark.background,
   },
   aiBtn: {
-    position: "absolute",
-    bottom: 100,
-    right: 20,
     backgroundColor: Colors.dark.backgroundSelected,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.full,
+    alignItems: "center",
+    justifyContent: "center",
     ...Shadows.lg,
+  },
+  aiBtnDisabled: {
+    opacity: 0.6,
   },
   aiBtnText: {
     ...Typography.button,
     color: Colors.dark.background,
+  },
+  aiActionPane: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    gap: Spacing.md,
+  },
+  hintText: {
+    ...Typography.bodySmall,
+    color: Colors.dark.textSecondary,
+    marginTop: Spacing.sm,
+  },
+  errorCard: {
+    backgroundColor: `${Colors.dark.danger}10`,
+    borderWidth: 1,
+    borderColor: Colors.dark.danger,
+    borderRadius: Radius.md,
+    padding: Spacing.lg,
+  },
+  errorText: {
+    ...Typography.label,
+    color: `${Colors.dark.text}`,
   },
   aiContainer: {
     paddingHorizontal: Spacing.lg,

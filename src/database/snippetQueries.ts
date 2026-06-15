@@ -16,59 +16,26 @@ export const initializeDatabase = () => {
     db.execSync(`
         CREATE TABLE IF NOT EXISTS snippets (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-
           title TEXT NOT NULL,
-
           description TEXT,
-
           code TEXT NOT NULL,
-
           language TEXT,
-
           tags TEXT,
-
           isFavorite INTEGER DEFAULT 0,
-
           aiSummary TEXT,
-
           createdAt TEXT,
-
           updatedAt TEXT
         );
       `);
-
-    console.log("Database initialized");
   } catch (error) {
-    console.log("DB Init Error:", error);
+    return;
   }
 };
-
-//   export const insertDemoSnippets = () => {
-//     try {
-//       db.execSync(`
-//         INSERT INTO snippets (title, description, code, language, tags, isFavorite, aiSummary, createdAt, updatedAt)
-//         VALUES
-//           ('Hello World in JavaScript', 'A simple hello world example in JavaScript', 'console.log("Hello World!");', 'JavaScript', 'hello world, javascript', 0, 'A basic JavaScript snippet that prints "Hello World!" to the console.', datetime('now'), datetime('now')),
-//           ('Factorial Function in Python', 'A function to calculate factorial of a number in Python', 'def factorial(n):\n    return 1 if n == 0 else n * factorial(n-1)', 'Python', 'factorial, python', 0, 'A recursive function in Python that calculates the factorial of a given number.', datetime('now'), datetime('now')),
-//           ('Fetch API Example', 'Using Fetch API to make a GET request', 'fetch("https://api.example.com/data")\n  .then(response => response.json())\n  .then(data => console.log(data))\n  .catch(error => console.error("Error:", error));', 'JavaScript', 'fetch api, javascript, http request', 0, 'An example of using the Fetch API in JavaScript to make a GET request and handle the response.', datetime('now'), datetime('now'));
-//       `);
-
-//       console.log(
-//         "Demo snippets inserted"
-//       );
-//     } catch (error) {
-//       console.log(
-//         "Insert Demo Snippets Error:",
-//         error
-//       );
-//     }
-//   }
 export const getAllSnippets = () => {
   try {
     const result = db.getAllSync("SELECT * FROM snippets");
     return result as snippetDataType[];
   } catch (error) {
-    console.log("Get All Snippets Error:", error);
     return [];
   }
 };
@@ -78,7 +45,6 @@ export const getSnippetById = (id: number) => {
     const result = db.getFirstSync("SELECT * FROM snippets WHERE id = ?", [id]);
     return result as snippetDataType | null;
   } catch (error) {
-    console.log("Get Snippet By ID Error:", error);
     return null;
   }
 };
@@ -109,10 +75,7 @@ export const insertSnippet = (
         updatedAt,
       ],
     );
-    console.log("Snippet inserted successfully");
-  } catch (error) {
-    console.log("Insert Snippet Error:", error);
-  }
+  } catch (error) {}
   return "success";
 };
 
@@ -142,10 +105,7 @@ export const updateSnippet = (
         id,
       ],
     );
-    console.log("Snippet updated successfully");
-  } catch (error) {
-    console.log("Update Snippet Error:", error);
-  }
+  } catch (error) {}
   return "success";
 };
 
@@ -156,19 +116,13 @@ export const updateSnippetAISummary = (id: number, aiSummary: string) => {
       "UPDATE snippets SET aiSummary = ?, updatedAt = ? WHERE id = ?",
       [aiSummary, updatedAt, id],
     );
-    console.log("AI Summary updated successfully");
-  } catch (error) {
-    console.log("Update AI Summary Error:", error);
-  }
+  } catch (error) {}
 };
 
 export const deleteSnippet = (id: number) => {
   try {
     db.runSync("DELETE FROM snippets WHERE id = ?", [id]);
-    console.log("Snippet deleted successfully");
-  } catch (error) {
-    console.log("Delete Snippet Error:", error);
-  }
+  } catch (error) {}
 };
 
 export const toggleFavorite = (id: number, Value: number) => {
@@ -181,11 +135,7 @@ export const toggleFavorite = (id: number, Value: number) => {
         `,
       [Value, id],
     );
-
-    console.log("Favorite updated");
-  } catch (error) {
-    console.log("Favorite Toggle Error:", error);
-  }
+  } catch (error) {}
 };
 
 export const searchSnippets = (query: string) => {
@@ -204,8 +154,6 @@ export const searchSnippets = (query: string) => {
 
     return result as snippetDataType[];
   } catch (error) {
-    console.log("Search Error:", error);
-
     return [];
   }
 };
